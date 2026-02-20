@@ -6,7 +6,7 @@ import {
   type ProductFilters,
 } from "@/types";
 import { ChevronDown, X } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 
 interface ProductFiltersPanelProps {
@@ -30,20 +30,11 @@ function FilterTag({
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const ref = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const selected = options.find((o) => o.value === value);
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (open && ref.current) {
+  const updatePosition = useCallback(() => {
+    if (ref.current) {
       const rect = ref.current.getBoundingClientRect();
       setPosition({
         top: rect.bottom + window.scrollY,
@@ -51,11 +42,40 @@ function FilterTag({
         width: rect.width,
       });
     }
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      updatePosition();
+    }
+  }, [open, updatePosition]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as Node;
+      // Check if click is inside the button or dropdown
+      if (ref.current?.contains(target) || dropdownRef.current?.contains(target)) {
+        return;
+      }
+      setOpen(false);
+    }
+
+    if (open) {
+      // Use pointerdown for better compatibility
+      document.addEventListener("pointerdown", handleClickOutside);
+      return () => document.removeEventListener("pointerdown", handleClickOutside);
+    }
   }, [open]);
+
+  const handleSelect = useCallback((optValue: string) => {
+    onChange(optValue);
+    setOpen(false);
+  }, [onChange]);
 
   return (
     <div className="relative" ref={ref}>
       <button
+        type="button"
         onClick={() => setOpen(!open)}
         className={`flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-full text-xs sm:text-sm whitespace-nowrap transition-all cursor-pointer min-h-[36px] sm:min-h-0
                    ${
@@ -71,7 +91,8 @@ function FilterTag({
       </button>
       {open && createPortal(
         <div
-          className="fixed bg-white border border-slate-200 rounded-lg shadow-xl py-1 z-[9999] min-w-[140px]"
+          ref={dropdownRef}
+          className="fixed bg-white border border-slate-200 rounded-lg shadow-xl py-1 z-[9999]"
           style={{
             top: position.top + 4,
             left: position.left,
@@ -80,10 +101,16 @@ function FilterTag({
         >
           {options.map((opt) => (
             <button
+              type="button"
               key={opt.value}
-              onClick={() => {
-                onChange(opt.value);
-                setOpen(false);
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSelect(opt.value);
               }}
               className={`w-full px-3 py-2.5 sm:py-2 text-xs sm:text-sm text-left hover:bg-slate-50 transition-colors cursor-pointer
                          ${opt.value === value ? "text-primary-600 font-medium bg-primary-50" : "text-slate-600"}`}
@@ -155,6 +182,7 @@ export function ProductFilters({
 
           {/* Recent 7 days toggle */}
           <button
+            type="button"
             onClick={() =>
               onFilterChange({ recentSevenDays: !filters.recentSevenDays })
             }
@@ -171,6 +199,7 @@ export function ProductFilters({
           {/* Reset button */}
           {activeFilterCount > 0 && (
             <button
+              type="button"
               onClick={onReset}
               className="flex items-center gap-1 px-3 py-2 sm:py-1.5 rounded-full text-xs sm:text-sm text-slate-500
                          hover:text-primary-600 hover:bg-primary-50 transition-all cursor-pointer shrink-0 min-h-[36px] sm:min-h-0"
