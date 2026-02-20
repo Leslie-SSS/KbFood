@@ -1,0 +1,36 @@
+server:
+  port: 9000
+  read_timeout: 30s
+  write_timeout: 30s
+  shutdown_timeout: 30s
+
+database:
+  # SQLite configuration
+  path: "file:./data/food.db?mode=rwc"
+  max_open_conns: 25
+  max_idle_conns: 5
+  max_lifetime: 1h
+  max_idle_time: 30m
+
+log:
+  level: debug
+  format: console
+  time_format: ""
+
+platforms:
+  tantantang:
+    token: "your-token-here"
+    secret_key: "your-secret-key-here"
+    base_url: "https://ttt.bjlxkjyxgs.cn/api/shop/activity"
+  dt:
+    token: "your-token-here"
+  xiaocan:
+    x_vayne: "test-placeholder"
+    x_teemo: "test-placeholder"
+    x_ashe: "test-placeholder"
+    x_nami: "test-placeholder"
+    x_sivir: "test-placeholder"
+    user_id: "test-placeholder"
+    silk_id: "test-placeholder"
+
+bark_url: "https://api.day.app"

@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Nginx 反向代理 + 静态文件服务
+  nginx:
+    image: nginx:alpine
+    container_name: food-go-nginx
+    ports:
+      - "8200:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./api-docs.html:/usr/share/nginx/html/index.html:ro
+    depends_on:
+      - food-go
+    restart: unless-stopped
+
+  # Food-Go API 服务
+  food-go:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+    environment:
+      # Server configuration
+      SERVER_PORT: 8080
+      SERVER_READ_TIMEOUT: 30s
+      SERVER_WRITE_TIMEOUT: 30s
+
+      # SQLite Database configuration
+      DB_PATH: /app/data/food.db
+      DB_MAX_OPEN_CONNS: 25
+      DB_MAX_IDLE_CONNS: 5
+
+      # Logging configuration
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+
+      # Platform API (replace with actual values)
+      PLATFORM_TANTANTANG_TOKEN: "your-token-here"
+      PLATFORM_TANTANTANG_SECRET_KEY: "your-secret-key-here"
+      PLATFORM_TANTANTANG_BASE_URL: "https://ttt.bjlxkjyxgs.cn/api/shop/activity"
+      PLATFORM_DT_TOKEN: "your-dt-token-here"
+      PLATFORM_XIAOCAN_X_VAYNE: "your-x-vayne-here"
+      PLATFORM_XIAOCAN_X_TEEMO: "your-x-teemo-here"
+      PLATFORM_XIAOCAN_X_ASHE: "your-x-ashe-here"
+      PLATFORM_XIAOCAN_X_NAMI: "your-x-nami-here"
+      PLATFORM_XIAOCAN_X_SIVIR: "your-x-sivir-here"
+      PLATFORM_XIAOCAN_USER_ID: "your-user-id-here"
+      PLATFORM_XIAOCAN_SILK_ID: "your-silk-id-here"
+    volumes:
+      # Persist SQLite database file
+      - food_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  food_data:

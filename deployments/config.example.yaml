@@ -1,0 +1,42 @@
+# Food-Go Configuration Example
+
+server:
+  port: 8080
+  read_timeout: 30s
+  write_timeout: 30s
+  shutdown_timeout: 30s
+
+database:
+  host: localhost
+  port: 5432
+  user: food
+  password: "your-secure-password-here"
+  name: food
+  max_conns: 20
+  min_conns: 5
+  max_lifetime: 1h
+  max_idle_time: 30m
+  connect_timeout: 10s
+
+log:
+  level: info        # debug, info, warn, error
+  format: json       # json, console
+  time_format: ""    # empty for RFC3339
+
+platforms:
+  tantantang:
+    token: "your-tantantang-token-here"
+    secret_key: "your-tantantang-secret-key-here"
+    base_url: https://ttt.bjlxkjyxgs.cn/api/shop/activity
+
+  dt:
+    token: "your-dt-token-here"
+
+  xiaocan:
+    x_vayne: "your-xiaocan-x-vayne-here"
+    x_teemo: "your-xiaocan-x-teemo-here"
+    x_ashe: "your-xiaocan-x-ashe-here"
+    x_nami: "your-xiaocan-x-nami-here"
+    x_sivir: "your-xiaocan-x-sivir-here"
+    user_id: "your-xiaocan-user-id-here"
+    silk_id: "your-xiaocan-silk-id-here"

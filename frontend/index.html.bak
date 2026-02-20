@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>美食产品监控系统</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --success: #10b981;
+            --radius: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            font-size: 14px;
+            padding-bottom: 40px;
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .navbar h1 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* 搜索与筛选区域 */
+        .search-section {
+            background: var(--bg-card);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .main-search-bar {
+            display: flex;
+            gap: 8px;
+        }
+
+        .search-input {
+            flex: 1;
+            background: #f1f5f9;
+            border: none;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--text-main);
+            outline: none;
+        }
+        .search-input:focus { background: #fff; box-shadow: 0 0 0 2px var(--primary); }
+
+        .btn-icon {
+            padding: 0 12px;
+            background: #f1f5f9;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-sub);
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:active { background: var(--primary-hover); }
+
+        /* 折叠筛选面板 */
+        .filter-panel {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: var(--bg-card);
+        }
+        .filter-panel.open { max-height: 300px; border-bottom: 1px solid var(--border); }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 12px 16px;
+        }
+
+        @media (min-width: 768px) {
+            .filter-grid { grid-template-columns: repeat(5, 1fr); }
+            .container { max-width: 1200px; margin: 0 auto; }
+        }
+
+        select, .checkbox-wrapper {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #fff;
+            font-size: 13px;
+            color: var(--text-main);
+        }
+
+        /* 产品列表 */
+        .container { padding: 12px; }
+        .product-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        @media (min-width: 640px) { .product-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .product-grid { grid-template-columns: repeat(3, 1fr); } }
+
+        /* 紧凑卡片设计 */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 1.4;
+            color: var(--text-main);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .card-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            background: #f1f5f9;
+            color: var(--text-sub);
+        }
+        .badge-monitor { background: #eff6ff; color: var(--primary); }
+        .badge-sold { background: #fef2f2; color: var(--danger); }
+
+        .card-meta {
+            display: flex;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-sub);
+            align-items: center;
+        }
+
+        .price-row {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .price-current { font-size: 20px; font-weight: 700; color: var(--danger); }
+        .price-original { font-size: 12px; text-decoration: line-through; color: #94a3b8; }
+        .price-discount { font-size: 12px; color: var(--success); font-weight: 500; }
+
+        .target-info {
+            font-size: 12px;
+            background: #fff7ed;
+            color: #c2410c;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .btn-sm {
+            flex: 1;
+            padding: 6px;
+            font-size: 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: white;
+            color: var(--text-main);
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-sm.primary { border-color: var(--primary); color: var(--primary); }
+        .btn-sm.danger { border-color: var(--danger); color: var(--danger); }
+
+        /* 图表容器 */
+        .chart-wrapper {
+            margin-top: 10px;
+            height: 200px;
+            display: none;
+        }
+        .chart-wrapper.show { display: block; }
+
+        /* 弹窗样式 */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            display: none; align-items: center; justify-content: center; z-index: 999;
+            backdrop-filter: blur(2px);
+        }
+        .modal-overlay.show { display: flex; }
+
+        .modal-box {
+            background: white; width: 85%; max-width: 400px;
+            border-radius: 12px; padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column;
+        }
+
+        .modal-box-large {
+            max-width: 600px; height: 80vh;
+        }
+
+        .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+        .form-item { margin-bottom: 16px; }
+        .form-item label { display: block; font-size: 12px; color: var(--text-sub); margin-bottom: 6px; }
+        .form-input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 16px; }
+
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-btn { flex: 1; padding: 10px; border-radius: 6px; border: none; font-size: 14px; cursor: pointer; }
+        .btn-cancel { background: #f1f5f9; color: var(--text-main); }
+
+        /* 屏蔽列表样式 */
+        .blocked-list-container {
+            flex: 1; overflow-y: auto;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            margin: 0 -20px 20px -20px;
+            padding: 10px 20px;
+        }
+
+        .empty-state {
+            text-align: center; padding: 40px; color: var(--text-sub); grid-column: 1/-1;
+        }
+        .loading { text-align: center; padding: 20px; color: var(--text-sub); width: 100%; }
+
+        /* Toast 提示 */
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            z-index: 9999;
+            display: none;
+        }
+        .toast.show { display: block; }
+
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <h1>🍜 美食监控系统</h1>
+    <div style="font-size: 12px; color: var(--text-sub);">
+        <span id="result-count">0</span> 个产品
+    </div>
+</nav>
+
+<div class="search-section">
+    <div class="main-search-bar">
+        <input type="text" id="keyword" class="search-input" placeholder="搜索产品或商家..." oninput="debounceSearch()">
+        <button class="btn-icon" onclick="toggleFilter()">⚙️ 筛选</button>
+        <button class="btn-icon" style="color: var(--text-sub);" onclick="openSettingsModal()">🔔 设置</button>
+        <button class="btn-icon" style="color: var(--danger);" onclick="openBlockedModal()">🚫 管理屏蔽</button>
+        <button class="btn-icon btn-primary" onclick="searchProducts()">搜索</button>
+    </div>
+</div>
+
+<div class="filter-panel" id="filterPanel">
+    <div class="filter-grid">
+        <select id="platform" onchange="searchProducts()">
+            <option value="">所有平台</option>
+            <option value="探探糖">探探糖</option>
+            <option value="DT">DT</option>
+            <option value="小蚕">小蚕</option>
+        </select>
+        <select id="region" onchange="searchProducts()">
+            <option value="">所有地区</option>
+            <option value="广州">广州</option>
+            <option value="佛山">佛山</option>
+        </select>
+        <select id="salesStatus" onchange="searchProducts()">
+            <option value="">销售状态</option>
+            <option value="1">在售</option>
+            <option value="0">已售罄</option>
+        </select>
+        <select id="monitorStatus" onchange="searchProducts()">
+            <option value="">监控状态</option>
+            <option value="1">已监控</option>
+            <option value="0">未监控</option>
+        </select>
+        <div class="checkbox-wrapper" style="display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="recentSevenDays" onchange="searchProducts()">
+            <label for="recentSevenDays">近7天上新</label>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div id="products-container" class="product-grid">
+    </div>
+</div>
+
+<div id="notificationModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-title">价格提醒设置</div>
+        <div class="form-item">
+            <label>产品名称</label>
+            <input type="text" id="modalProductTitle" class="form-input" style="background:#f8fafc;" readonly>
+        </div>
+        <div class="form-item">
+            <label>目标价格 (低于此价格提醒)</label>
+            <input type="number" id="modalTargetPrice" class="form-input" placeholder="输入金额" step="0.01">
+        </div>
+        <div class="modal-actions">
+            <button class="modal-btn btn-cancel" onclick="closeModal()">取消</button>
+            <button class="modal-btn btn-primary" onclick="saveNotification()">保存设置</button>
+        </div>
+    </div>
+</div>
+
+<div id="blockedModal" class="modal-overlay">
+    <div class="modal-box modal-box-large">
+        <div class="modal-title">已屏蔽产品列表</div>
+        <div class="blocked-list-container" id="blocked-list">
+        </div>
+        <div class="modal-actions" style="margin-top: 0;">
+            <button class="modal-btn btn-cancel" onclick="closeBlockedModal()">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-title">🔔 通知设置</div>
+        <div class="form-item">
+            <label for="barkKey">Bark Key</label>
+            <input type="text" id="barkKey" class="form-input" placeholder="输入 Bark Key (如: https://api.day.app/xxx)">
+        </div>
+        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 16px;">
+            Bark 是 iOS 推送工具。获取方式：App Store 下载 Bark，复制推送 URL。
+        </div>
+        <div class="modal-actions">
+            <button class="modal-btn btn-cancel" onclick="closeSettingsModal()">取消</button>
+            <button class="modal-btn btn-primary" onclick="saveSettings()">保存</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // 配置API地址 - 自动检测
+    // Auto-detect API URL - use same origin if available, otherwise fallback to port 9000
+    const API_BASE_URL = (window.location.port === '8200' || window.location.port === '')
+        ? window.location.protocol + '//' + window.location.hostname + ':8200/api'
+        : (window.location.port === '8000')
+        ? window.location.protocol + '//' + window.location.hostname + ':9000/api'
+        : window.location.protocol + '//' + window.location.hostname + ':9000/api';
+
+    // 状态管理
+    let currentProduct = null;
+    let chartInstances = {};
+    let isFilterOpen = false;
+
+    // Debounce search
+    let searchTimeout;
+    function debounceSearch() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => searchProducts(), 300);
+    }
+
+    // 切换筛选面板
+    function toggleFilter() {
+        const panel = document.getElementById('filterPanel');
+        isFilterOpen = !isFilterOpen;
+        if(isFilterOpen) panel.classList.add('open');
+        else panel.classList.remove('open');
+    }
+
+    // 显示提示
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    // 核心搜索功能
+    function searchProducts(keepScroll = false) {
+        const container = document.getElementById('products-container');
+        const savedScrollPosition = window.scrollY;
+
+        if (!keepScroll) {
+            container.innerHTML = '<div class="loading">加载中...</div>';
+        }
+
+        const params = new URLSearchParams();
+        const keyword = document.getElementById('keyword').value;
+        const platform = document.getElementById('platform').value;
+        const region = document.getElementById('region').value;
+        const salesStatus = document.getElementById('salesStatus').value;
+        const monitorStatus = document.getElementById('monitorStatus').value;
+
+        if (keyword) params.append('keyword', keyword);
+        if (platform) params.append('platform', platform);
+        if (region) params.append('region', region);
+        if (salesStatus) params.append('salesStatus', salesStatus);
+        if (monitorStatus) params.append('monitorStatus', monitorStatus);
+        if (document.getElementById('recentSevenDays').checked) {
+            params.append('recentSevenDays', 'true');
+        }
+
+        const queryString = params.toString();
+        const url = `${API_BASE_URL}/products${queryString ? '?' + queryString : ''}`;
+
+        fetch(url)
+            .then(res => res.json())
+            .then(result => {
+                let data = result.data || [];
+
+                // 排序：已监控优先，差价越小越靠前
+                data.sort((a, b) => {
+                    const monitorA = a.hasNotification ? 1 : 0;
+                    const monitorB = b.hasNotification ? 1 : 0;
+
+                    if (monitorA !== monitorB) {
+                        return monitorB - monitorA;
+                    }
+
+                    if (monitorA === 1) {
+                        const gapA = a.currentPrice - (a.targetPrice || 0);
+                        const gapB = b.currentPrice - (b.targetPrice || 0);
+                        return gapA - gapB;
+                    }
+
+                    return 0;
+                });
+
+                renderList(data);
+
+                if (keepScroll) {
+                    window.scrollTo(0, savedScrollPosition);
+                }
+            })
+            .catch(err => {
+                container.innerHTML = `<div class="empty-state" style="color:var(--danger)">请求失败，请检查网络</div>`;
+                console.error(err);
+            });
+    }
+
+    // 渲染列表
+    function renderList(products) {
+        const container = document.getElementById('products-container');
+        document.getElementById('result-count').innerText = products.length;
+
+        // Cache products for modal access
+        cacheProductData(products);
+
+        if (products.length === 0) {
+            container.innerHTML = `<div class="empty-state">暂无相关产品</div>`;
+            return;
+        }
+
+        container.innerHTML = products.map(p => {
+            const discount = p.originalPrice > 0
+                ? ((1 - p.currentPrice / p.originalPrice) * 10).toFixed(1)
+                : '-';
+
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">${escapeHtml(p.title)}</div>
+                        ${p.salesStatus !== 1 ? '<span class="card-badge badge-sold">已售</span>' : ''}
+                    </div>
+
+                    <div class="card-meta">
+                        <span>${escapeHtml(p.platform)}</span>
+                        <span>•</span>
+                        <span>${escapeHtml(p.region)}</span>
+                        <span>•</span>
+                        <span>${escapeHtml(p.shopName)}</span>
+                    </div>
+
+                    <div class="price-row">
+                        <span class="price-current">¥${p.currentPrice}</span>
+                        <span class="price-original">¥${p.originalPrice}</span>
+                        ${discount !== '-' ? `<span class="price-discount">${discount}折</span>` : ''}
+                        ${p.hasNotification ? '<span class="card-badge badge-monitor" style="margin-left:auto">监控中</span>' : ''}
+                    </div>
+
+                    ${p.hasNotification ? `
+                        <div class="target-info" onclick="openModal('${p.activityId}', true)">
+                            <span>🎯 目标价: ¥${p.targetPrice}</span>
+                            <span>✎</span>
+                        </div>
+                    ` : ''}
+
+                    <div class="action-row">
+                        <button class="btn-sm" onclick="toggleTrend(this, '${p.activityId}')">📉 趋势</button>
+                        ${p.hasNotification ?
+                            `<button class="btn-sm" style="color:var(--text-sub)" onclick="deleteNotification('${p.activityId}')">取消监控</button>` :
+                            `<button class="btn-sm primary" onclick="openModalById('${p.activityId}')">🔔 提醒</button>`
+                        }
+                        <button class="btn-sm" style="color:var(--text-sub)" onclick="blockProduct('${p.activityId}')">🚫 屏蔽</button>
+                    </div>
+
+                    <div id="chart-${p.activityId}" class="chart-wrapper">
+                        <canvas id="canvas-${p.activityId}"></canvas>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    // HTML转义
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // 趋势图表
+    function toggleTrend(btn, activityId) {
+        const wrapper = document.getElementById(`chart-${activityId}`);
+        const isShowing = wrapper.classList.contains('show');
+
+        document.querySelectorAll('.chart-wrapper.show').forEach(el => {
+            if(el.id !== `chart-${activityId}`) el.classList.remove('show');
+        });
+
+        if (isShowing) {
+            wrapper.classList.remove('show');
+            btn.classList.remove('primary');
+        } else {
+            wrapper.classList.add('show');
+            btn.classList.add('primary');
+            loadTrendData(activityId);
+        }
+    }
+
+    function loadTrendData(activityId) {
+        if (chartInstances[activityId]) return;
+
+        fetch(`${API_BASE_URL}/products/${activityId}/trend`)
+            .then(res => res.json())
+            .then(res => {
+                const data = res.data || [];
+                if (data.length === 0) {
+                    document.getElementById(`chart-${activityId}`).innerHTML = '<div style="text-align:center;padding:20px;color:#999">暂无趋势数据</div>';
+                    return;
+                }
+
+                const ctx = document.getElementById(`canvas-${activityId}`).getContext('2d');
+                const prices = data.map(d => d.price);
+                const dates = data.map(d => d.date.substring(5));
+
+                chartInstances[activityId] = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: '价格',
+                            data: prices,
+                            borderColor: '#2563eb',
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            tension: 0.3,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: false, grid: { color: '#f1f5f9' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            })
+            .catch(err => {
+                document.getElementById(`chart-${activityId}`).innerHTML = '<div style="text-align:center;padding:20px;color:#999">加载失败</div>';
+            });
+    }
+
+    // 保存产品数据用于模态框
+    const productsCache = {};
+
+    function cacheProductData(products) {
+        products.forEach(p => {
+            productsCache[p.activityId] = p;
+        });
+    }
+
+    // 模态框逻辑
+    function openModalById(activityId) {
+        const product = productsCache[activityId];
+        if (product) {
+            openModalWithProduct(product, false);
+        }
+    }
+
+    function openModal(activityId, isEdit) {
+        const product = productsCache[activityId];
+        if (product) {
+            openModalWithProduct(product, isEdit);
+        }
+    }
+
+    function openModalWithProduct(product, isEdit) {
+        currentProduct = product;
+        currentProduct.isEdit = isEdit;
+        document.getElementById('modalProductTitle').value = product.title;
+        document.getElementById('modalTargetPrice').value = isEdit ? (product.targetPrice || '') : '';
+        document.getElementById('notificationModal').classList.add('show');
+        setTimeout(() => document.getElementById('modalTargetPrice').focus(), 100);
+    }
+
+    function closeModal() {
+        document.getElementById('notificationModal').classList.remove('show');
+        currentProduct = null;
+    }
+
+    function saveNotification() {
+        const price = parseFloat(document.getElementById('modalTargetPrice').value);
+        if (!price || price <= 0) {
+            showToast('请输入有效的目标价格');
+            return;
+        }
+
+        const url = currentProduct.isEdit
+            ? `${API_BASE_URL}/products/notifications/${currentProduct.activityId}`
+            : `${API_BASE_URL}/products/notifications`;
+
+        const method = currentProduct.isEdit ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                activityId: currentProduct.activityId,
+                targetPrice: price
+            })
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.code === 200 || res.message === 'OK') {
+                closeModal();
+                showToast(currentProduct.isEdit ? '监控设置已更新' : '监控已设置');
+                searchProducts(true);
+            } else {
+                showToast('操作失败: ' + (res.message || '未知错误'));
+            }
+        })
+        .catch(err => {
+            showToast('请求失败，请稍后重试');
+        });
+    }
+
+    function deleteNotification(id) {
+        if(!confirm('确认取消监控?')) return;
+
+        fetch(`${API_BASE_URL}/products/notifications/${id}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(res => {
+                if (res.code === 200 || res.message === 'OK') {
+                    showToast('已取消监控');
+                    searchProducts(true);
+                } else {
+                    showToast('操作失败: ' + (res.message || '未知错误'));
+                }
+            });
+    }
+
+    function blockProduct(id) {
+        if(!confirm('确认屏蔽该产品? 屏蔽后将不再显示。')) return;
+
+        fetch(`${API_BASE_URL}/products/${id}/block`, { method: 'POST' })
+            .then(res => res.json())
+            .then(res => {
+                if (res.code === 200 || res.message === 'OK') {
+                    showToast('已屏蔽产品');
+                    searchProducts(true);
+                } else {
+                    showToast('操作失败: ' + (res.message || '未知错误'));
+                }
+            });
+    }
+
+    // 屏蔽列表相关
+    function openBlockedModal() {
+        document.getElementById('blockedModal').classList.add('show');
+        loadBlockedProducts();
+    }
+
+    function closeBlockedModal() {
+        document.getElementById('blockedModal').classList.remove('show');
+    }
+
+    function loadBlockedProducts() {
+        const container = document.getElementById('blocked-list');
+        container.innerHTML = '<div class="loading">加载中...</div>';
+
+        fetch(`${API_BASE_URL}/products/blocked`)
+            .then(res => res.json())
+            .then(data => {
+                const list = data.data || [];
+                if (list.length === 0) {
+                    container.innerHTML = '<div class="empty-state">暂无屏蔽产品</div>';
+                    return;
+                }
+                container.innerHTML = list.map(p => `
+                    <div class="card" style="margin-bottom: 10px; border:1px solid #eee; box-shadow:none;">
+                        <div class="card-header">
+                            <div class="card-title" style="font-size:14px;">${escapeHtml(p.title)}</div>
+                        </div>
+                        <div class="card-meta">
+                            <span>${escapeHtml(p.platform)}</span> • <span>${escapeHtml(p.region)}</span> • <span style="color:var(--danger)">¥${p.currentPrice}</span>
+                        </div>
+                        <div class="action-row" style="margin-top: 8px;">
+                             <button class="btn-sm primary" onclick="doUnblock('${p.activityId}')">🔁 恢复显示</button>
+                        </div>
+                    </div>
+                `).join('');
+            })
+            .catch(err => {
+                container.innerHTML = '<div class="empty-state">加载失败</div>';
+            });
+    }
+
+    function doUnblock(id) {
+        if(!confirm('确认恢复该产品的显示?')) return;
+
+        fetch(`${API_BASE_URL}/products/unblock/${id}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(res => {
+                if (res.code === 200 || res.message === 'OK') {
+                    showToast('已恢复显示');
+                    loadBlockedProducts();
+                    searchProducts(true);
+                } else {
+                    showToast('操作失败: ' + (res.message || '未知错误'));
+                }
+            });
+    }
+
+    // Settings modal functions
+    function openSettingsModal() {
+        const savedKey = localStorage.getItem('barkKey') || '';
+        document.getElementById('barkKey').value = savedKey;
+        document.getElementById('settingsModal').classList.add('show');
+    }
+
+    function closeSettingsModal() {
+        document.getElementById('settingsModal').classList.remove('show');
+    }
+
+    function saveSettings() {
+        const barkKey = document.getElementById('barkKey').value.trim();
+        if (barkKey) {
+            localStorage.setItem('barkKey', barkKey);
+            showToast('设置已保存');
+        } else {
+            localStorage.removeItem('barkKey');
+            showToast('已清除 Bark Key');
+        }
+        closeSettingsModal();
+    }
+
+    // 初始化
+    window.addEventListener('load', () => {
+        searchProducts(false);
+    });
+
+    // 关闭模态框（点击背景）
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+            }
+        });
+    });
+</script>
+</body>
+</html>

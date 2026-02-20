@@ -1,0 +1,70 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+kbfood-server
+server
+
+# Go workspace file
+go.work
+
+# Coverage
+coverage.out
+coverage.html
+
+# Environment variables
+.env
+.env.local
+deployments/.env
+deployments/.env.local
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+data/
+
+# Build outputs
+static/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# sqlc generated files (optional)
+# internal/infra/db/sqlc/
+
+# Wire generated files
+cmd/server/wire_gen.go
+
+# Temporary files
+tmp/
+temp/
+
+# Frontend
+frontend/dist/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+frontend/node_modules/
+
+# Test artifacts
+test-results/
+
+# Sensitive config (contains API tokens)
+config.yaml
