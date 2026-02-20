@@ -5,14 +5,19 @@ import { settingsService } from "./settingsService";
 const getApiBaseUrl = (): string => {
   const { protocol, hostname, port } = window.location;
 
-  // Production (nginx proxy on 8200)
-  if (port === "8200" || port === "") {
-    return `${protocol}//${hostname}:8200/api`;
+  // Production (no port, HTTPS) - use relative path through nginx proxy
+  if (port === "" && protocol === "https:") {
+    return "/api";
+  }
+
+  // Production on port 8200 (legacy)
+  if (port === "8200") {
+    return `${protocol}://${hostname}:8200/api`;
   }
 
   // Development with port 8000 (legacy)
   if (port === "8000") {
-    return `${protocol}//${hostname}:9000/api`;
+    return `${protocol}://${hostname}:9000/api`;
   }
 
   // Preview mode on ports 3000-3010 - connect to backend on 9000
@@ -31,7 +36,7 @@ const getApiBaseUrl = (): string => {
       "3010",
     ].includes(port)
   ) {
-    return `${protocol}//${hostname}:9000/api`;
+    return `${protocol}://${hostname}:9000/api`;
   }
 
   // Vite dev server - proxy to backend
