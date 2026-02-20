@@ -20,6 +20,10 @@ RUN npm run build
 # Stage 2: Build Backend
 FROM golang:1.23-alpine AS backend-builder
 
+# Set Go proxy for China
+ENV GOPROXY=https://goproxy.cn,direct
+ENV GOSUMDB=sum.golang.google.cn
+
 # Install build dependencies
 RUN apk add --no-cache git make gcc musl-dev
 
