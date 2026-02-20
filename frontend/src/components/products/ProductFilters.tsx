@@ -7,6 +7,7 @@ import {
 } from "@/types";
 import { ChevronDown, X } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 interface ProductFiltersPanelProps {
   filters: ProductFilters;
@@ -14,7 +15,7 @@ interface ProductFiltersPanelProps {
   onReset: () => void;
 }
 
-// Tag-style dropdown filter component
+// Tag-style dropdown filter component with Portal for proper z-index
 function FilterTag({
   label,
   options,
@@ -27,6 +28,7 @@ function FilterTag({
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const ref = useRef<HTMLDivElement>(null);
   const selected = options.find((o) => o.value === value);
 
@@ -39,6 +41,17 @@ function FilterTag({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (open && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  }, [open]);
 
   return (
     <div className="relative" ref={ref}>
@@ -56,8 +69,15 @@ function FilterTag({
           className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
-      {open && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-[100] min-w-[140px]">
+      {open && createPortal(
+        <div
+          className="fixed bg-white border border-slate-200 rounded-lg shadow-xl py-1 z-[9999] min-w-[140px]"
+          style={{
+            top: position.top + 4,
+            left: position.left,
+            minWidth: Math.max(position.width, 140),
+          }}
+        >
           {options.map((opt) => (
             <button
               key={opt.value}
@@ -71,7 +91,8 @@ function FilterTag({
               {opt.label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
