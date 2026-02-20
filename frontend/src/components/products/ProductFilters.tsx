@@ -57,7 +57,7 @@ function FilterTag({
         />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50 min-w-[140px]">
+        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-[100] min-w-[140px]">
           {options.map((opt) => (
             <button
               key={opt.value}
