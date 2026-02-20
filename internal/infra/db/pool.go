@@ -52,7 +52,14 @@ func NewPool(ctx context.Context, cfg *Config) (*Pool, error) {
 		return nil, fmt.Errorf("ping database: %w", err)
 	}
 
-	return &Pool{DB: db}, nil
+	pool := &Pool{DB: db}
+
+	// Run migrations
+	if err := pool.RunMigrations(); err != nil {
+		return nil, fmt.Errorf("run migrations: %w", err)
+	}
+
+	return pool, nil
 }
 
 // Ping checks if the database connection is alive
