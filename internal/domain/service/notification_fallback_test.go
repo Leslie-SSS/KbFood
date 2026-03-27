@@ -52,6 +52,12 @@ func (s *stubNotificationRepository) Delete(ctx context.Context, activityID stri
 func (s *stubNotificationRepository) UpdateNotifyTime(ctx context.Context, activityID string, userID string) error {
 	s.updatedActivityID = activityID
 	s.updatedUserID = userID
+	now := time.Now()
+	for _, config := range s.configs {
+		if config.ActivityID == activityID && config.UserID == userID {
+			config.LastNotifyTime = &now
+		}
+	}
 	return nil
 }
 
@@ -209,5 +215,58 @@ func TestNotificationService_CheckAndNotifyFallsBackToMasterProduct(t *testing.T
 	}
 	if notiRepo.updatedActivityID != "DT_ed87d13fb7fcf11aea6de4129038b765" || notiRepo.updatedUserID != "client-123" {
 		t.Fatalf("expected notify time update for migrated notification, got activity=%q user=%q", notiRepo.updatedActivityID, notiRepo.updatedUserID)
+	}
+}
+
+func TestNotificationService_CheckAndNotifyOnlyNotifiesOncePerDay(t *testing.T) {
+	ctx := context.Background()
+
+	notiRepo := &stubNotificationRepository{
+		configs: []*entity.NotificationConfig{
+			{
+				ActivityID:  "DT_repeat_once",
+				UserID:      "client-123",
+				TargetPrice: 75.05,
+				CreateTime:  time.Now(),
+				UpdateTime:  time.Now(),
+			},
+		},
+	}
+	prodRepo := &stubProductRepository{}
+	masterRepo := &stubMasterProductRepository{
+		product: &entity.MasterProduct{
+			ID:            "DT_repeat_once",
+			Region:        "广州",
+			Platform:      "DT",
+			StandardTitle: "火锅四人餐",
+			Price:         68.7,
+			Status:        entity.SalesStatusOnSale,
+		},
+	}
+	userSettingsRepo := &stubUserSettingsRepository{
+		settings: &entity.UserSettings{
+			UserID:  "client-123",
+			BarkKey: "https://api.day.app/DEVICE123/",
+		},
+	}
+
+	requestCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	service := NewNotificationService(notiRepo, prodRepo, masterRepo, userSettingsRepo, server.URL)
+
+	if err := service.CheckAndNotify(ctx); err != nil {
+		t.Fatalf("first CheckAndNotify() error = %v", err)
+	}
+	if err := service.CheckAndNotify(ctx); err != nil {
+		t.Fatalf("second CheckAndNotify() error = %v", err)
+	}
+
+	if requestCount != 1 {
+		t.Fatalf("expected only 1 Bark request in a single day, got %d", requestCount)
 	}
 }
