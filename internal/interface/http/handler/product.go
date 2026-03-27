@@ -183,7 +183,7 @@ func (h *ProductHandler) BlockProduct(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, dto.Error(400, "activityId is required"))
 	}
 	if userID == "" {
-		return c.JSON(http.StatusBadRequest, dto.Error(400, "用户标识缺失，请先设置 Bark Key"))
+		return c.JSON(http.StatusBadRequest, dto.Error(400, "用户标识缺失，请刷新页面后重试"))
 	}
 
 	if err := h.blockedRepo.Create(ctx, activityID, userID); err != nil {
@@ -203,7 +203,7 @@ func (h *ProductHandler) UnblockProduct(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, dto.Error(400, "activityId is required"))
 	}
 	if userID == "" {
-		return c.JSON(http.StatusBadRequest, dto.Error(400, "用户标识缺失，请先设置 Bark Key"))
+		return c.JSON(http.StatusBadRequest, dto.Error(400, "用户标识缺失，请刷新页面后重试"))
 	}
 
 	if err := h.blockedRepo.Delete(ctx, activityID, userID); err != nil {
@@ -262,7 +262,7 @@ func (h *ProductHandler) CreateNotification(c echo.Context) error {
 	userID := middleware.GetUserID(c)
 
 	if userID == "" {
-		return c.JSON(http.StatusBadRequest, dto.Error(400, "用户标识缺失，请先设置 Bark Key"))
+		return c.JSON(http.StatusBadRequest, dto.Error(400, "用户标识缺失，请刷新页面后重试"))
 	}
 
 	var params struct {
@@ -304,7 +304,7 @@ func (h *ProductHandler) UpdateNotification(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, dto.Error(400, "activityId is required"))
 	}
 	if userID == "" {
-		return c.JSON(http.StatusBadRequest, dto.Error(400, "用户标识缺失，请先设置 Bark Key"))
+		return c.JSON(http.StatusBadRequest, dto.Error(400, "用户标识缺失，请刷新页面后重试"))
 	}
 
 	var params struct {
@@ -345,7 +345,7 @@ func (h *ProductHandler) DeleteNotification(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, dto.Error(400, "activityId is required"))
 	}
 	if userID == "" {
-		return c.JSON(http.StatusBadRequest, dto.Error(400, "用户标识缺失，请先设置 Bark Key"))
+		return c.JSON(http.StatusBadRequest, dto.Error(400, "用户标识缺失，请刷新页面后重试"))
 	}
 
 	if err := h.notiRepo.Delete(ctx, activityID, userID); err != nil {

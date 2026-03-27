@@ -32,7 +32,7 @@ func (h *UserHandler) SaveSettings(c echo.Context) error {
 	userID := middleware.GetUserID(c)
 
 	if userID == "" {
-		return c.JSON(http.StatusBadRequest, dto.Error(400, "用户标识缺失，请先设置 Bark Key"))
+		return c.JSON(http.StatusBadRequest, dto.Error(400, "用户标识缺失，请刷新页面后重试"))
 	}
 
 	var params struct {

@@ -2,19 +2,31 @@ import '@testing-library/jest-dom';
 import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
+const localStorageStore = new Map<string, string>();
+
 // Cleanup after each test
 afterEach(() => {
   cleanup();
+  localStorageStore.clear();
+  vi.clearAllMocks();
 });
 
 // Mock localStorage
 const localStorageMock = {
-  getItem: vi.fn(() => null),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-  length: 0,
-  key: vi.fn(() => null),
+  getItem: vi.fn((key: string) => localStorageStore.get(key) ?? null),
+  setItem: vi.fn((key: string, value: string) => {
+    localStorageStore.set(key, String(value));
+  }),
+  removeItem: vi.fn((key: string) => {
+    localStorageStore.delete(key);
+  }),
+  clear: vi.fn(() => {
+    localStorageStore.clear();
+  }),
+  get length() {
+    return localStorageStore.size;
+  },
+  key: vi.fn((index: number) => Array.from(localStorageStore.keys())[index] ?? null),
 };
 
 Object.defineProperty(window, 'localStorage', {
