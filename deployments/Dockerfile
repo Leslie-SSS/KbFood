@@ -1,7 +1,7 @@
 # Multi-stage Docker build for kbFood with React frontend
 
 # Stage 1: Build Frontend
-FROM node:20-alpine AS frontend-builder
+FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/node:20-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
@@ -18,14 +18,11 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Build Backend
-FROM golang:1.23-alpine AS backend-builder
+FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/golang:1.23-alpine AS backend-builder
 
 # Set Go proxy for China
 ENV GOPROXY=https://goproxy.cn,direct
 ENV GOSUMDB=sum.golang.google.cn
-
-# Install build dependencies
-RUN apk add --no-cache git make gcc musl-dev
 
 WORKDIR /app
 
@@ -40,10 +37,11 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-w -s" -o main ./cmd/server
 
 # Stage 3: Final Runtime Image
-FROM alpine:latest
+FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:latest
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata curl
+RUN sed -i 's#https://dl-cdn.alpinelinux.org/alpine#https://mirrors.aliyun.com/alpine#g' /etc/apk/repositories && \
+    apk add --no-cache ca-certificates tzdata curl
 
 # Set timezone
 ENV TZ=Asia/Shanghai

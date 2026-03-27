@@ -32,6 +32,7 @@ func Router(
 	e.Use(middleware.Logger())
 	e.Use(middleware.CORS())
 	e.Use(middleware.UserExtractor())
+	e.Use(middleware.UserDataMigrator(database))
 
 	// Health check (no auth required)
 	e.GET("/health", healthHandler.Health)

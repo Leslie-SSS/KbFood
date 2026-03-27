@@ -16,24 +16,27 @@ import (
 
 // NotificationService handles price notifications
 type NotificationService struct {
-	notiRepo       repository.NotificationRepository
-	prodRepo       repository.ProductRepository
+	notiRepo         repository.NotificationRepository
+	prodRepo         repository.ProductRepository
+	masterRepo       repository.MasterProductRepository
 	userSettingsRepo repository.UserSettingsRepository
-	barkURL        string
+	barkURL          string
 }
 
 // NewNotificationService creates a new notification service
 func NewNotificationService(
 	notiRepo repository.NotificationRepository,
 	prodRepo repository.ProductRepository,
+	masterRepo repository.MasterProductRepository,
 	userSettingsRepo repository.UserSettingsRepository,
 	barkURL string,
 ) *NotificationService {
 	return &NotificationService{
-		notiRepo:       notiRepo,
-		prodRepo:       prodRepo,
+		notiRepo:         notiRepo,
+		prodRepo:         prodRepo,
+		masterRepo:       masterRepo,
 		userSettingsRepo: userSettingsRepo,
-		barkURL:        barkURL,
+		barkURL:          barkURL,
 	}
 }
 
@@ -113,8 +116,7 @@ func (s *NotificationService) checkAndNotifySingle(ctx context.Context, config *
 		return false
 	}
 
-	// Get current product price
-	product, err := s.prodRepo.FindByActivityID(ctx, config.ActivityID)
+	product, err := s.findNotificationProduct(ctx, config.ActivityID)
 	if err != nil {
 		log.Error().Err(err).
 			Str("activityId", config.ActivityID).
@@ -145,7 +147,7 @@ func (s *NotificationService) checkAndNotifySingle(ctx context.Context, config *
 }
 
 // sendNotification sends a push notification
-func (s *NotificationService) sendNotification(product *entity.Product, targetPrice float64, barkKey string) bool {
+func (s *NotificationService) sendNotification(product *notificationProduct, targetPrice float64, barkKey string) bool {
 	message := fmt.Sprintf("【%s %s ¥%.2f】%s",
 		product.Platform,
 		product.Region,
@@ -211,6 +213,68 @@ func (s *NotificationService) sendNotification(product *entity.Product, targetPr
 		Msg("Bark notification sent successfully")
 
 	return true
+}
+
+type notificationProduct struct {
+	ActivityID   string
+	Platform     string
+	Region       string
+	Title        string
+	CurrentPrice float64
+	SalesStatus  int
+}
+
+func (p *notificationProduct) IsOnSale() bool {
+	return p != nil && p.SalesStatus == entity.SalesStatusOnSale
+}
+
+func (s *NotificationService) findNotificationProduct(ctx context.Context, activityID string) (*notificationProduct, error) {
+	if s.masterRepo != nil {
+		masterProduct, err := s.masterRepo.FindByID(ctx, activityID)
+		if err != nil {
+			return nil, fmt.Errorf("get master product: %w", err)
+		}
+		if masterProduct != nil {
+			return &notificationProduct{
+				ActivityID:   masterProduct.ID,
+				Platform:     notificationPlatform(masterProduct),
+				Region:       masterProduct.Region,
+				Title:        masterProduct.StandardTitle,
+				CurrentPrice: masterProduct.Price,
+				SalesStatus:  masterProduct.Status,
+			}, nil
+		}
+	}
+
+	product, err := s.prodRepo.FindByActivityID(ctx, activityID)
+	if err != nil {
+		return nil, fmt.Errorf("get product: %w", err)
+	}
+	if product == nil {
+		return nil, nil
+	}
+
+	return &notificationProduct{
+		ActivityID:   product.ActivityID,
+		Platform:     product.Platform,
+		Region:       product.Region,
+		Title:        product.Title,
+		CurrentPrice: product.CurrentPrice,
+		SalesStatus:  product.SalesStatus,
+	}, nil
+}
+
+func notificationPlatform(product *entity.MasterProduct) string {
+	if product == nil {
+		return ""
+	}
+	if strings.TrimSpace(product.Platform) != "" {
+		return product.Platform
+	}
+	if strings.HasPrefix(product.ID, "DT_") {
+		return "DT"
+	}
+	return "探探糖"
 }
 
 // normalizeBarkKey extracts device key from full URL or returns key as-is

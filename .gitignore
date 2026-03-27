@@ -9,6 +9,8 @@ bin/
 *.out
 kbfood-server
 server
+!cmd/server/
+!cmd/server/main.go
 
 # Go workspace file
 go.work

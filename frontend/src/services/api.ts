@@ -54,9 +54,14 @@ export const api = axios.create({
 // Request interceptor - add X-User-ID header
 api.interceptors.request.use(
   (config) => {
-    const barkKey = settingsService.getBarkKey();
-    if (barkKey) {
-      config.headers["X-User-ID"] = normalizeBarkKey(barkKey);
+    const clientId = settingsService.getOrCreateClientId();
+    const legacyUserId = settingsService.getLegacyUserId();
+
+    if (clientId) {
+      config.headers["X-User-ID"] = clientId;
+    }
+    if (legacyUserId && legacyUserId !== clientId) {
+      config.headers["X-Legacy-User-ID"] = legacyUserId;
     }
     return config;
   },
@@ -73,35 +78,3 @@ api.interceptors.response.use(
     return Promise.reject(error);
   },
 );
-
-// Normalize Bark key - extract device key from URL if needed
-function normalizeBarkKey(input: string): string {
-  const trimmed = input.trim();
-  if (!trimmed) {
-    return "";
-  }
-
-  if (trimmed.toLowerCase().startsWith("http")) {
-    try {
-      const parsed = new URL(trimmed);
-      const path = parsed.pathname.replace(/^\/+|\/+$/g, "");
-      if (!path) return "";
-      const parts = path.split("/");
-
-      for (let i = parts.length - 1; i >= 0; i--) {
-        const seg = parts[i].trim();
-        if (seg) return seg;
-      }
-      return "";
-    } catch {
-      const fallback = trimmed.replace(/^\/+|\/+$/g, "");
-      const parts = fallback.split("/");
-      for (let i = parts.length - 1; i >= 0; i--) {
-        const seg = parts[i].trim();
-        if (seg) return seg;
-      }
-      return "";
-    }
-  }
-  return trimmed;
-}
