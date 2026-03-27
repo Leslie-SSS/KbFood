@@ -22,14 +22,8 @@ func (n *NotificationConfig) ShouldNotify(currentPrice float64) bool {
 	}
 
 	// Check if already notified today (local time)
-	if n.LastNotifyTime != nil {
-		now := time.Now()
-		lastYear, lastMonth, lastDay := n.LastNotifyTime.Date()
-		nowYear, nowMonth, nowDay := now.Date()
-
-		if lastYear == nowYear && lastMonth == nowMonth && lastDay == nowDay {
-			return false // Already notified today (local time)
-		}
+	if n.LastNotifyTime != nil && sameCalendarDayInLocation(time.Now(), *n.LastNotifyTime, time.Now().Location()) {
+		return false // Already notified today (local time)
 	}
 
 	return true
@@ -47,9 +41,19 @@ func (n *NotificationConfig) HasNotifiedToday() bool {
 		return false
 	}
 
-	now := time.Now()
-	lastYear, lastMonth, lastDay := n.LastNotifyTime.Date()
-	nowYear, nowMonth, nowDay := now.Date()
+	return sameCalendarDayInLocation(time.Now(), *n.LastNotifyTime, time.Now().Location())
+}
 
-	return lastYear == nowYear && lastMonth == nowMonth && lastDay == nowDay
+func sameCalendarDayInLocation(left, right time.Time, loc *time.Location) bool {
+	if loc == nil {
+		loc = time.Local
+	}
+
+	left = left.In(loc)
+	right = right.In(loc)
+
+	leftYear, leftMonth, leftDay := left.Date()
+	rightYear, rightMonth, rightDay := right.Date()
+
+	return leftYear == rightYear && leftMonth == rightMonth && leftDay == rightDay
 }

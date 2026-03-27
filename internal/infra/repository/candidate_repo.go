@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"kbfood/internal/domain/entity"
@@ -137,16 +138,32 @@ func (r *candidateRepository) DeleteByIDs(ctx context.Context, ids []int64) erro
 	return nil
 }
 
-// parseSQLiteTime parses an RFC3339 timestamp string to time.Time
+// parseSQLiteTime parses repository timestamps from SQLite or RFC3339 values.
 func parseSQLiteTime(s string) time.Time {
+	s = strings.TrimSpace(s)
 	if s == "" {
 		return time.Time{}
 	}
-	t, err := time.Parse(time.RFC3339, s)
-	if err != nil {
-		return time.Time{}
+
+	for _, layout := range []string{time.RFC3339Nano, time.RFC3339} {
+		t, err := time.Parse(layout, s)
+		if err == nil {
+			return t
+		}
 	}
-	return t
+
+	for _, layout := range []string{
+		"2006-01-02 15:04:05",
+		"2006-01-02T15:04:05",
+		"2006-01-02",
+	} {
+		t, err := time.ParseInLocation(layout, s, time.UTC)
+		if err == nil {
+			return t
+		}
+	}
+
+	return time.Time{}
 }
 
 // convertDBCandidateToEntity converts db.CandidateItem to entity.CandidateItem
